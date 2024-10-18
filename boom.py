@@ -34,14 +34,19 @@ doomguy_sens = 2
 fov = math.pi / 3
 scale = 1600 // 600
 
+
+sin_values = [math.sin(angle) for angle in range(800)]
+cos_values = [math.cos(angle) for angle in range(800)]
+
 def lighting(screen, doomguy_pos, doomguy_vector):
     ox, oy = doomguy_pos
     x_map, y_map = int(ox), int(oy)
 
     main_vector = doomguy_vector - (math.pi / 3) / 2 + 0.1
     for ray in range(800):
-        sin_a = math.sin(main_vector)
-        cos_a = math.cos(main_vector)
+        #pre-calculated sine and cosine values
+        sin_a = sin_values[ray]
+        cos_a = cos_values[ray]
 
         y_hor, dy = (y_map + 1, 1) if sin_a > 0 else (y_map - 1e-6, -1)
 
