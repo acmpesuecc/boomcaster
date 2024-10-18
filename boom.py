@@ -49,7 +49,19 @@ def generate_world(width, height, doomguy_pos):
     fill(doomguy_x, doomguy_y)
     return world
 
-walls = {}
+def place_destination(world):
+    width = len(world[0])
+    height = len(world)
+    
+    while True:
+        dest_x = random.randint(1, width - 2)
+        dest_y = random.randint(1, height - 2)
+        if world[dest_y][dest_x] == 0: 
+            return (dest_x, dest_y)
+        
+def reached_destination(doomguy_pos, destination):
+    return math.isclose(doomguy_pos[0], destination[0], abs_tol=0.5) and math.isclose(doomguy_pos[1], destination[1], abs_tol=0.5)
+
 
 doomguy_pos = 1.5, 5
 doomguy_vector = 0
@@ -59,11 +71,15 @@ fov = math.pi / 3
 scale = 1600 // 600
 
 world = generate_world(16,11,doomguy_pos)
-print(world)
+destination = place_destination(world)
+
+walls = {}
 for l, row in enumerate(world):
     for n, value in enumerate(row):
         if value:
             walls[(n, l)] = value
+
+print(world, destination)
 
 
 def lighting(screen, doomguy_pos, doomguy_vector):
@@ -166,6 +182,17 @@ while True:
         doomguy_x += dx
     if check_wall_collision(doomguy_x, doomguy_y + dy):
         doomguy_y += dy
+        
+    doomguy_pos = doomguy_x, doomguy_y
+    
+    if reached_destination(doomguy_pos, destination):
+        world = generate_world(16, 11, doomguy_pos)
+        destination = place_destination(world)
+        walls = {}
+        for l, row in enumerate(world):
+            for n, value in enumerate(row):
+                if value:
+                    walls[(n, l)] = value
 
     if keys[pygame.K_LEFT]:
         doomguy_vector -= doomguy_sens * dt
