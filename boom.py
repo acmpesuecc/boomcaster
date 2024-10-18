@@ -19,13 +19,7 @@ world = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ]
 
-walls = {}
-
-for l, row in enumerate(world):
-    for n, value in enumerate(row):
-        if value:
-            walls[(n, l)] = value
-
+walls = {(n,l):value for l,row in enumerate(world) for n, value in enumerate(row) if value}
 
 doomguy_pos = 1.5, 5
 doomguy_vector = 0
@@ -34,17 +28,17 @@ doomguy_sens = 2
 fov = math.pi / 3
 scale = 1600 // 600
 
-def lighting(screen, doomguy_pos, doomguy_vector):
+def lighting(screen, doomguy_pos, doomguy_vector, wall_texture):
     ox, oy = doomguy_pos
     x_map, y_map = int(ox), int(oy)
 
-    main_vector = doomguy_vector - (math.pi / 3) / 2 + 0.1
+    main_vector = doomguy_vector - (math.pi / 3) / 2 
     for ray in range(800):
         sin_a = math.sin(main_vector)
         cos_a = math.cos(main_vector)
 
+       
         y_hor, dy = (y_map + 1, 1) if sin_a > 0 else (y_map - 1e-6, -1)
-
         depth_hor = (y_hor - oy) / sin_a
         x_hor = ox + depth_hor * cos_a
 
@@ -60,7 +54,6 @@ def lighting(screen, doomguy_pos, doomguy_vector):
             depth_hor += delta_depth
 
         x_vert, dx = (x_map + 1, 1) if cos_a > 0 else (x_map - 1e-6, -1)
-
         depth_vert = (x_vert - ox) / cos_a
         y_vert = oy + depth_vert * sin_a
 
@@ -75,33 +68,39 @@ def lighting(screen, doomguy_pos, doomguy_vector):
             y_vert += dy
             depth_vert += delta_depth
 
+      
         if depth_vert < depth_hor:
             depth = depth_vert
+            texture_x = y_vert % 1
         else:
             depth = depth_hor
+            texture_x = x_hor % 1
 
-        depth *= math.cos(doomguy_vector - main_vector)
 
         proj_height = 800 / math.tan((math.pi / 3) / 2) / (depth + 0.0001)
 
-        color = [255 / (1 + depth ** 5 * 0.00002)] * 3
-        pygame.draw.rect(screen, color, (ray * scale, 540 - proj_height // 2, scale, proj_height))
+        
+        texture_x = int(texture_x * wall_texture.get_width())  
+        wall_column = wall_texture.subsurface(texture_x, 0, 1, wall_texture.get_height())
+        wall_column = pygame.transform.scale(wall_column, (scale, int(proj_height)))  
+  
+        screen.blit(wall_column, (ray * scale, 540 - proj_height // 2))
 
         main_vector += (math.pi / 3) / 800
 
-
 doomguy_x, doomguy_y = doomguy_pos
-doomguy_vector = doomguy_vector
-
 
 def check_wall_collision(x, y):
     return (int(x), int(y)) not in walls
-
 
 pygame.init()
 screen = pygame.display.set_mode((1600, 1080))
 clock = pygame.time.Clock()
 dt = 1
+
+wall_texture = pygame.image.load(wall_texture_path).convert()
+floor_texture = pygame.image.load(floor_texture_path).convert()
+sky_texture = pygame.image.load(sky_texture_path).convert()
 
 while True:
     for event in pygame.event.get():
@@ -143,21 +142,20 @@ while True:
 
     screen.fill((0, 0, 0))
 
-    floor_texture = pygame.image.load(floor_texture_path).convert()
+
+    sky_texture = pygame.transform.scale(sky_texture, (1600, 540))
+    sky_offset = int(doomguy_vector / math.tau * 1600) % 1600
+    screen.blit(sky_texture, (-sky_offset, 0))
+    if sky_offset > 0:
+        screen.blit(sky_texture, (1600 - sky_offset, 0))
+
+
     floor_texture = pygame.transform.scale(floor_texture, (scale, scale))
     for y in range(540, 1080, scale):
         for x in range(0, 1600, scale):
             screen.blit(floor_texture, (x, y))
 
-    sky_texture = pygame.image.load(sky_texture_path).convert()
-    sky_texture = pygame.transform.scale(sky_texture, (1600, 540))
-    screen.blit(sky_texture, (0, 0))
-
-    wall_texture = pygame.image.load(wall_texture_path).convert()
-    wall_texture = pygame.transform.scale(wall_texture, (scale, scale))
-    for (x, y) in walls:
-        screen.blit(wall_texture, (x * scale, y * scale))
-    lighting(screen, (doomguy_x, doomguy_y), doomguy_vector)
+    lighting(screen, (doomguy_x, doomguy_y), doomguy_vector, wall_texture)
 
     pygame.display.flip()
     dt = clock.tick(60) / 1000.0
