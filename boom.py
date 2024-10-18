@@ -1,30 +1,66 @@
 import pygame
 import math
+import random
+from collections import deque
 
 wall_texture_path = 'wall.png'
 floor_texture_path = 'floor.png'
 sky_texture_path = 'sky.png'
 
-world = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1],
-    [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1],
-    [1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-    [1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-]
+# world = [
+#     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1],
+#     [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1],
+#     [1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+#     [1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+#     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+# ]
 
-walls = {}
+def generate_world(width, height, doomguy_pos):
+   
+    world = [[1 for _ in range(width)] for _ in range(height)]
 
-for l, row in enumerate(world):
-    for n, value in enumerate(row):
-        if value:
-            walls[(n, l)] = value
+    for x in range(width):
+        world[0][x] = 1 
+        world[height - 1][x] = 1
+    for y in range(height):
+        world[y][0] = 1  
+        world[y][width - 1] = 1 
+        
+    doomguy_x, doomguy_y = int(doomguy_pos[0]), int(doomguy_pos[1])
+    world[doomguy_y][doomguy_x] = 0 
+
+    def fill(x, y):
+        directions = [(2, 0), (-2, 0), (0, 2), (0, -2)]
+        random.shuffle(directions)
+        
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if 1 <= nx < width - 1 and 1 <= ny < height - 1 and world[ny][nx] == 1:
+                world[y + dy // 2][x + dx // 2] = 0
+                world[ny][nx] = 0 
+                fill(nx, ny)
+    
+    fill(doomguy_x, doomguy_y)
+    return world
+
+def place_destination(world):
+    width = len(world[0])
+    height = len(world)
+    
+    while True:
+        dest_x = random.randint(1, width - 2)
+        dest_y = random.randint(1, height - 2)
+        if world[dest_y][dest_x] == 0: 
+            return (dest_x, dest_y)
+        
+def reached_destination(doomguy_pos, destination):
+    return math.isclose(doomguy_pos[0], destination[0], abs_tol=0.5) and math.isclose(doomguy_pos[1], destination[1], abs_tol=0.5)
 
 
 doomguy_pos = 1.5, 5
@@ -33,6 +69,18 @@ doomguy_speed = 2
 doomguy_sens = 2
 fov = math.pi / 3
 scale = 1600 // 600
+
+world = generate_world(16,11,doomguy_pos)
+destination = place_destination(world)
+
+walls = {}
+for l, row in enumerate(world):
+    for n, value in enumerate(row):
+        if value:
+            walls[(n, l)] = value
+
+print(world, destination)
+
 
 def lighting(screen, doomguy_pos, doomguy_vector):
     ox, oy = doomguy_pos
@@ -134,6 +182,17 @@ while True:
         doomguy_x += dx
     if check_wall_collision(doomguy_x, doomguy_y + dy):
         doomguy_y += dy
+        
+    doomguy_pos = doomguy_x, doomguy_y
+    
+    if reached_destination(doomguy_pos, destination):
+        world = generate_world(16, 11, doomguy_pos)
+        destination = place_destination(world)
+        walls = {}
+        for l, row in enumerate(world):
+            for n, value in enumerate(row):
+                if value:
+                    walls[(n, l)] = value
 
     if keys[pygame.K_LEFT]:
         doomguy_vector -= doomguy_sens * dt
