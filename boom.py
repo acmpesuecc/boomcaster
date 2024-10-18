@@ -60,17 +60,17 @@ def place_destination(world):
             return (dest_x, dest_y)
         
 def reached_destination(doomguy_pos, destination):
-    return math.isclose(doomguy_pos[0], destination[0], abs_tol=0.5) and math.isclose(doomguy_pos[1], destination[1], abs_tol=0.5)
+    return math.isclose(doomguy_pos[0], destination[0], abs_tol=1) and math.isclose(doomguy_pos[1], destination[1], abs_tol=1)
 
 
-doomguy_pos = 1.5, 5
+doomguy_pos = 1.5, 3
 doomguy_vector = 0
 doomguy_speed = 2
 doomguy_sens = 2
 fov = math.pi / 3
 scale = 1600 // 600
 
-world = generate_world(16,11,doomguy_pos)
+world = generate_world(6,5,doomguy_pos)
 destination = place_destination(world)
 
 walls = {}
@@ -186,8 +186,10 @@ while True:
     doomguy_pos = doomguy_x, doomguy_y
     
     if reached_destination(doomguy_pos, destination):
+        
         world = generate_world(16, 11, doomguy_pos)
         destination = place_destination(world)
+        print(world, destination)
         walls = {}
         for l, row in enumerate(world):
             for n, value in enumerate(row):
