@@ -1,31 +1,48 @@
 import pygame
 import math
+import random
+from collections import deque
 
 wall_texture_path = 'wall.png'
 floor_texture_path = 'floor.png'
 sky_texture_path = 'sky.png'
 
-world = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1],
-    [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1],
-    [1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-    [1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-]
+# world = [
+#     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+#     [1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1],
+#     [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1],
+#     [1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+#     [1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
+#     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+#     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+# ]
+
+def generate_world(width, height, doomguy_pos):
+    world = [[1 for _ in range(width)] for _ in range(height)]
+    doomguy_x, doomguy_y = int(doomguy_pos[0]), int(doomguy_pos[1])
+    world[doomguy_y][doomguy_x] = 0
+
+    walls = deque([(doomguy_x, doomguy_y)])
+
+    while walls:
+        x, y = walls.popleft()
+
+        directions = [(2, 0), (-2, 0), (0, 2), (0, -2)]
+        random.shuffle(directions)
+
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < width and 0 <= ny < height and world[ny][nx] == 1:
+                world[y + dy // 2][x + dx // 2] = 0
+                world[ny][nx] = 0
+                walls.append((nx, ny))    
+    return world
 
 walls = {}
-
-for l, row in enumerate(world):
-    for n, value in enumerate(row):
-        if value:
-            walls[(n, l)] = value
-
 
 doomguy_pos = 1.5, 5
 doomguy_vector = 0
@@ -33,6 +50,14 @@ doomguy_speed = 2
 doomguy_sens = 2
 fov = math.pi / 3
 scale = 1600 // 600
+
+world = generate_world(16,11,doomguy_pos)
+print(world)
+for l, row in enumerate(world):
+    for n, value in enumerate(row):
+        if value:
+            walls[(n, l)] = value
+
 
 def lighting(screen, doomguy_pos, doomguy_vector):
     ox, oy = doomguy_pos
