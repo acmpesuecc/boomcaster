@@ -22,24 +22,31 @@ sky_texture_path = 'sky.png'
 # ]
 
 def generate_world(width, height, doomguy_pos):
+   
     world = [[1 for _ in range(width)] for _ in range(height)]
+
+    for x in range(width):
+        world[0][x] = 1 
+        world[height - 1][x] = 1
+    for y in range(height):
+        world[y][0] = 1  
+        world[y][width - 1] = 1 
+        
     doomguy_x, doomguy_y = int(doomguy_pos[0]), int(doomguy_pos[1])
-    world[doomguy_y][doomguy_x] = 0
+    world[doomguy_y][doomguy_x] = 0 
 
-    walls = deque([(doomguy_x, doomguy_y)])
-
-    while walls:
-        x, y = walls.popleft()
-
+    def fill(x, y):
         directions = [(2, 0), (-2, 0), (0, 2), (0, -2)]
         random.shuffle(directions)
-
+        
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            if 0 <= nx < width and 0 <= ny < height and world[ny][nx] == 1:
+            if 1 <= nx < width - 1 and 1 <= ny < height - 1 and world[ny][nx] == 1:
                 world[y + dy // 2][x + dx // 2] = 0
-                world[ny][nx] = 0
-                walls.append((nx, ny))    
+                world[ny][nx] = 0 
+                fill(nx, ny)
+    
+    fill(doomguy_x, doomguy_y)
     return world
 
 walls = {}
